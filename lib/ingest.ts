@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { postDiscord } from "./discord.mjs";
 import { canonicalUrl, excerpt, scoreItem, shouldAlert } from "./engine.mjs";
 import { htmlFields, parseRss, parseSitemapNews } from "./parse.mjs";
 import { prisma, ready } from "./db";
@@ -150,7 +151,21 @@ export async function acceptItem(input: Entry & { sourceId: string }) {
         });
       }
     }
-    return { duplicate: false as const, error: undefined, item };
+    const floorRow = await prisma.setting.findUnique({ where: { key: "defaultMinImpact" } });
+    const floor = Number(floorRow?.value ?? "70");
+    let discord: "sent" | "failed" | "below" = "below";
+    if (item.impactScore >= floor) {
+      const pushed = await postDiscord({
+        title: item.title,
+        summary: item.summary,
+        url: item.url,
+        sourceId: item.sourceId,
+        category: item.category,
+        impactScore: item.impactScore,
+      });
+      discord = pushed.sent ? "sent" : "failed";
+    }
+    return { duplicate: false as const, error: undefined, item, discord };
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
       return { duplicate: true as const, error: undefined, item: existing };
@@ -164,6 +179,7 @@ export async function pollAll() {
   const sources = await prisma.source.findMany({ where: { enabled: true } });
   let inserted = 0;
   let duplicates = 0;
+  let discord = 0;
   const errors: ItemError[] = [];
 
   for (const source of sources) {
@@ -175,7 +191,10 @@ export async function pollAll() {
         const result = await acceptItem({ sourceId: source.id, ...entry });
         if (result.error) mine.push(result.error);
         else if (result.duplicate) duplicates += 1;
-        else inserted += 1;
+        else {
+          inserted += 1;
+          if (result.discord === "sent") discord += 1;
+        }
       }
       await prisma.source.update({
         where: { id: source.id },
@@ -195,5 +214,5 @@ export async function pollAll() {
     errors.push(...mine);
   }
 
-  return { inserted, duplicates, errors };
+  return { inserted, duplicates, discord, errors };
 }

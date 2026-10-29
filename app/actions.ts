@@ -22,7 +22,7 @@ export async function saveSubscriber(formData: FormData) {
     minImpact: formData.get("minImpact"),
   });
   if (!parsed.ok || !parsed.value) {
-    redirect(`/preferences?error=${encodeURIComponent(parsed.cause || "Could not save that preference.")}`);
+    redirect(`/?error=${encodeURIComponent(parsed.cause || "Could not save that preference.")}`);
   }
 
   await ready();
@@ -43,5 +43,5 @@ export async function saveSubscriber(formData: FormData) {
       minImpact: value.minImpact,
     },
   });
-  redirect("/preferences?saved=1");
+  redirect("/?saved=1");
 }

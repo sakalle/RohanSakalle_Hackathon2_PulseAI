@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test tests/engine.test.mjs tests/parse.test.mjs tests/prefs.test.mjs",
+    "test": "node --test tests/engine.test.mjs tests/parse.test.mjs tests/prefs.test.mjs tests/discord.test.mjs",
     "db:push": "prisma db push"
   },
   "dependencies": {

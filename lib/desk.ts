@@ -1,17 +1,12 @@
 import { prisma, ready } from "./db";
 
-export async function getFeed(category: string, floor: number) {
+export async function getFeed() {
   await ready();
-  const where = {
-    impactScore: { gte: floor },
-    ...(category !== "all" ? { category } : {}),
-  };
   const [items, sources, total] = await Promise.all([
     prisma.item.findMany({
-      where,
       include: { source: true },
       orderBy: { fetchedAt: "desc" },
-      take: 60,
+      take: 120,
     }),
     prisma.source.findMany({ orderBy: { name: "asc" } }),
     prisma.item.count(),
