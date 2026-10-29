@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Source {
+  id           String    @id
+  name         String
+  kind         String
+  url          String
+  weight       Int
+  enabled      Boolean   @default(true)
+  lastPolledAt DateTime?
+  lastError    String?
+  items        Item[]
+}
+
+model Item {
+  id           String    @id @default(cuid())
+  sourceId     String
+  source       Source    @relation(fields: [sourceId], references: [id])
+  url          String    @unique
+  title        String
+  text         String
+  summary      String
+  summaryKind  String
+  category     String
+  impactScore  Int
+  scoreKind    String
+  publishedAt  DateTime?
+  fetchedAt    DateTime  @default(now())
+  alerts       Alert[]
+}
+
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  providers String
+  frequency String
+  paused    Boolean  @default(false)
+  minImpact Int
+  createdAt DateTime @default(now())
+  alerts    Alert[]
+}
+
+model Alert {
+  id           String     @id @default(cuid())
+  itemId       String
+  item         Item       @relation(fields: [itemId], references: [id])
+  subscriberId String
+  subscriber   Subscriber @relation(fields: [subscriberId], references: [id])
+  channel      String
+  status       String
+  createdAt    DateTime   @default(now())
+
+  @@unique([itemId, subscriberId])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
